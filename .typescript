@@ -1,0 +1,85 @@
+// pages/api/auth/[...nextauth].ts
+import NextAuth from 'next-auth';
+import CredentialsProvider from 'next-auth/providers/credentials';
+import { PrismaClient } from '@prisma/client';
+import bcrypt from 'bcryptjs';
+
+const prisma = new PrismaClient();
+
+export default NextAuth({
+  providers: [
+    CredentialsProvider({
+      name: 'Credentials',
+      credentials: {
+        email: { label: "Email", type: "email" },
+        password: { label: "Password", type: "password" }
+      },
+      async authorize(credentials) {
+        if (!credentials?.email || !credentials?.password) {
+          throw new Error('Invalid credentials');
+        }
+        
+        const user = await prisma.user.findUnique({
+          where: { email: credentials.email }
+        });
+
+        if (!user || !await bcrypt.compare(credentials.password, user.password)) {
+          throw new Error('Invalid credentials');
+        }
+
+        return user;
+      }
+    })
+  ],
+  session: {
+    strategy: 'jwt'
+  }
+});
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// components/ProductCard.tsx
+import Image from 'next/image';
+import { Product } from '@prisma/client';
+
+interface ProductCardProps {
+  product: Product;
+}
+
+export default function ProductCard({ product }: ProductCardProps) {
+  return (
+    <div className="border rounded-lg p-4 shadow-sm">
+      <div className="relative h-48 w-full">
+        <Image
+          src={product.images[0]}
+          alt={product.title}
+          fill
+          className="object-cover rounded-md"
+        />
+      </div>
+      <h3 className="mt-2 text-lg font-semibold">{product.title}</h3>
+      <p className="text-gray-600">${product.price}</p>
+      <button className="mt-2 w-full bg-blue-600 text-white py-2 rounded-md">
+        View Details
+      </button>
+    </div>
+  );
+}
